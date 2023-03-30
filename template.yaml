@@ -82,6 +82,8 @@ Resources:
               - GET
             AllowedOrigins:
               - '*'
+            ExposedHeaders:
+              - 'Content-Type'
 
   contentsBucketPolicy:
     Type: "AWS::S3::BucketPolicy"
