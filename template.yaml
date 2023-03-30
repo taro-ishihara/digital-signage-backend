@@ -12,6 +12,12 @@ Globals:
       Variables:
         LOG_LEVEL: INFO
         CONTENTS_BUCKET_NAME: !Ref contentsBucket
+        CONTENTS_BUCKET_URL: !Join
+          - ''
+          - - 'https://'
+            - !GetAtt
+              - contentsBucket
+              - DomainName
 
 Resources:
   contentsAPI:

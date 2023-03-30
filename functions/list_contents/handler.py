@@ -23,6 +23,6 @@ def lambda_handler(event, context):
     prefix = event['queryStringParameters'].get('prefix', '')
 
     contents = contents_bucket.objects.filter(Prefix=prefix)
-    filtered_contents = [{'filePath': content.key, 'etag': json.loads(content.e_tag)} for content in contents if content.key.endswith('.png') or content.key.endswith('.mp4')]
+    filtered_contents = [{'downloadUrl': '{}/{}'.format(os.environ['CONTENTS_BUCKET_URL'], content.key), 'etag': json.loads(content.e_tag)} for content in contents if content.key.endswith('.png') or content.key.endswith('.mp4')]
 
     return filtered_contents
