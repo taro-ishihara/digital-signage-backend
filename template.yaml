@@ -1,0 +1,103 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Transform: AWS::Serverless-2016-10-31
+Description: Digital Signage Backend
+
+Globals:
+  Function:
+    Handler: handler.lambda_handler
+    Runtime: python3.9
+    Architectures:
+      - x86_64
+    Environment:
+      Variables:
+        LOG_LEVEL: INFO
+        CONTENTS_BUCKET_NAME: !Ref contentsBucket
+
+Resources:
+  contentsAPI:
+    Type: AWS::Serverless::HttpApi
+    Properties:
+      CorsConfiguration:
+        AllowOrigins:
+          - "*"
+        AllowMethods:
+          - GET
+          - POST
+
+  listContentsFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: functions/list_contents
+      Policies:
+        - S3ReadPolicy:
+            BucketName: !Ref contentsBucket
+      Events:
+        ListContentsEvent:
+          Type: HttpApi
+          Properties:
+            ApiId: !Ref contentsAPI
+            Path: /
+            Method: get
+            PayloadFormatVersion: "2.0"
+
+  generateUploadUrlFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: functions/generate_upload_url
+      Policies:
+        - S3WritePolicy:
+            BucketName: !Ref contentsBucket
+      Events:
+        CreateUploadUrl:
+          Type: HttpApi
+          Properties:
+            ApiId: !Ref contentsAPI
+            Path: /generate-upload-url
+            Method: post
+            PayloadFormatVersion: "2.0"
+
+  contentsBucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      AccessControl: PublicRead
+      BucketName: digital-signage-backend-contents
+      LifecycleConfiguration:
+        Rules:
+          - Id: Cleanup
+            Status: Enabled
+            NoncurrentVersionExpirationInDays: 90
+      VersioningConfiguration:
+        Status: Enabled
+      CorsConfiguration:
+        CorsRules:
+          - AllowedHeaders:
+              - '*'
+            AllowedMethods:
+              - GET
+            AllowedOrigins:
+              - '*'
+
+  contentsBucketPolicy:
+    Type: "AWS::S3::BucketPolicy"
+    Properties:
+      Bucket: !Ref contentsBucket
+      PolicyDocument:
+        Statement:
+          - Action:
+              - s3:GetObject
+            Effect: "Allow"
+            Principal: "*"
+            Resource: !Sub arn:aws:s3:::${contentsBucket}/*
+
+Outputs:
+  contentsApiEndpoint:
+    Value: !GetAtt
+      - contentsAPI
+      - ApiEndpoint
+  contentsBucketSecureUrl:
+    Value: !Join
+      - ''
+      - - 'https://'
+        - !GetAtt
+          - contentsBucket
+          - DomainName
